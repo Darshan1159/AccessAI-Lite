@@ -1,0 +1,5 @@
+# Laptop AI server (tested versions). Install torch first with the CUDA index URL from README.md.
+transformers==5.17.0
+accelerate==1.15.0
+bitsandbytes==0.50.2
+pillow==12.3.0

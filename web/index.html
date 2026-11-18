@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>AccessAI Lite</title>
+<style>
+  :root {
+    --bg: #0b1220; --panel: #131d33; --panel2: #1a2742; --fg: #f4f7ff; --muted: #a9b8d6;
+    --accent: #ffd23f; --accent-ink: #141414; --ok: #3ddc84; --warn: #ff8a3d; --line: #2a3a5c;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); }
+  body {
+    display: flex; flex-direction: column; gap: 10px; overflow: hidden;
+    padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  h1 { font-size: 1.15rem; margin: 0; letter-spacing: .02em; }
+  h1 span { color: var(--accent); }
+  #status { font-size: .85rem; font-weight: 700; color: var(--muted); padding: 4px 10px; border-radius: 999px; background: var(--panel); }
+
+  .cam { position: relative; flex: 1 1 0; min-height: 140px; border-radius: 16px; overflow: hidden; background: #000; border: 2px solid var(--line); }
+  video, canvas.overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .pill { position: absolute; top: 10px; padding: 5px 11px; border-radius: 999px; font-size: .85rem; font-weight: 800; background: rgba(0,0,0,.65); }
+  #quality { left: 10px; } #quality.ok { color: var(--ok); } #quality.bad { color: var(--warn); }
+  #modeBadge { right: 10px; background: var(--accent); color: var(--accent-ink); }
+
+  #say { flex: 0 0 auto; min-height: 3.4em; max-height: 7.5em; overflow-y: auto; font-size: 1.15rem; line-height: 1.35;
+         padding: 10px 12px; background: var(--panel); border-radius: 12px; border: 1px solid var(--line); text-align: left; color: var(--fg); width: 100%; font-weight: 500; }
+  #say small { display: block; color: var(--muted); font-size: .8rem; margin-top: 4px; font-weight: 600; }
+
+  button { font: inherit; color: var(--fg); background: var(--panel2); border: 2px solid var(--line); border-radius: 14px; touch-action: manipulation; cursor: pointer; }
+  button:focus-visible { outline: 4px solid var(--accent); outline-offset: 2px; }
+  button:active { transform: scale(.97); }
+  #talk { flex: 0 0 auto; width: 100%; min-height: 86px; background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
+          font-size: 1.35rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 12px; }
+  #talk svg { width: 30px; height: 30px; }
+  #talk.listening { background: var(--ok); border-color: var(--ok); animation: pulse 1.1s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 10px rgba(61,220,132,.25); } }
+  .grid { flex: 0 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .grid button { min-height: 66px; font-size: 1rem; font-weight: 800; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  .grid button small { font-weight: 600; color: var(--muted); font-size: .72rem; }
+  .grid button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .grid button.on small { color: var(--accent-ink); }
+
+  #start { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+           background: var(--bg); padding: 24px; text-align: center; }
+  #start h1 { font-size: 2rem; }
+  #start p { color: var(--muted); max-width: 30em; line-height: 1.5; margin: 0; font-size: 1.05rem; }
+  #start ul { text-align: left; color: var(--fg); line-height: 1.6; margin: 0; padding-left: 1.2em; max-width: 26em; }
+  #startBtn { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); width: min(100%, 380px); font-size: 1.5rem; font-weight: 800; min-height: 100px; }
+  @media (max-height: 640px) { .grid button { min-height: 56px; } #talk { min-height: 70px; } }
+  @media (prefers-reduced-motion: reduce) { button:active { transform: none; } #talk.listening { animation: none; } }
+</style>
+</head>
+<body>
+<div id="start" role="dialog" aria-labelledby="startTitle">
+  <h1 id="startTitle">Access<span>AI</span> Lite</h1>
+  <p>A talking camera for blind and low-vision users.</p>
+  <ul>
+    <li>Tells you what is in front of you</li>
+    <li>Reads labels, notes and screens aloud</li>
+    <li>Helps you find things: “find my bottle”</li>
+    <li>Warns about obstacles while you walk</li>
+  </ul>
+  <button id="startBtn">Tap to start</button>
+  <p id="startNote">Uses the camera and microphone. Pictures stay on this phone.</p>
+</div>
+
+<header>
+  <h1>Access<span>AI</span> Lite</h1>
+  <div id="status" aria-live="polite">Starting</div>
+</header>
+
+<div class="cam" id="cam">
+  <video id="video" playsinline muted autoplay aria-hidden="true"></video>
+  <canvas id="overlay" class="overlay" aria-hidden="true"></canvas>
+  <div id="quality" class="pill" aria-hidden="true">…</div>
+  <div id="modeBadge" class="pill" hidden></div>
+</div>
+
+<button id="say" aria-live="assertive" aria-label="Last message. Tap to repeat.">Tap the yellow button and tell me what you need.<small>Tap here to repeat</small></button>
+
+<button id="talk" aria-label="Talk. Tap and say what you need.">
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg>
+  <span id="talkLabel">Tap to talk</span>
+</button>
+
+<div class="grid">
+  <button id="bDescribe">Describe<small>what’s ahead</small></button>
+  <button id="bRead">Read<small>text aloud</small></button>
+  <button id="bFind" aria-pressed="false">Find<small>an object</small></button>
+  <button id="bExplore" aria-pressed="false">Explore<small>auto-announce</small></button>
+  <button id="bWalk" aria-pressed="false">Walk<small>obstacle alerts</small></button>
+  <button id="bTorch" aria-pressed="false">Torch<small>light</small></button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
